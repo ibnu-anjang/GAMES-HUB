@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0f1117;
+  --color-panel: #1a1d27;
+  --color-border: #2a2e3a;
+  --color-ink: #e7e9ee;
+  --color-ink-dim: #9aa0ad;
+  --color-brand: #6366f1;
+  --color-brand-2: #f43f5e;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

@@ -98,6 +98,15 @@
             🔁 Restart Match
           </button>
         </div>
+        <button id="sound-btn" class="sound-toggle">🔊 Sound On</button>
+      </section>
+
+      <!-- Move History Panel -->
+      <section class="panel">
+        <h2 class="panel-title" id="move-log-title">🕒 Move History</h2>
+        <ol id="move-log" class="move-log">
+          <li class="move-log-empty">No moves yet.</li>
+        </ol>
       </section>
     </aside>
 
@@ -139,6 +148,7 @@
   </div>
 
   <!-- Game scripts loaded in sequence (prevents CORS issues on file:// protocol) -->
+  <script src="js/sound.js"></script>
   <script src="js/state.js"></script>
   <script src="js/logic.js"></script>
   <script src="js/ai.js"></script>

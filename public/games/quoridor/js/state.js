@@ -50,6 +50,36 @@ class GameState {
     this.language = 'id'; // 'id' or 'en'
     this.winner = null;
     this.history = []; // History stack for undo: array of serialized state snapshots
+    this.lastAction = null; // Last applied action, for highlighting the opponent's move
+    this.moveLog = []; // Ordered list of applied actions, for the move history panel
+  }
+
+  /**
+   * Applies a single action to the board and records it.
+   * An action is `{ type: 'move', r, c }` or
+   * `{ type: 'wall', r, c, orientation }`. Turn passing and win detection
+   * are handled by the caller — this only mutates the board and the log.
+   *
+   * Centralizing mutation here keeps local, AI, and (future) networked moves
+   * on one code path.
+   */
+  applyAction(action) {
+    const player = this.players[this.currentPlayerIdx];
+
+    if (action.type === 'move') {
+      player.r = action.r;
+      player.c = action.c;
+    } else if (action.type === 'wall') {
+      player.walls--;
+      if (action.orientation === 'h') {
+        this.hWalls[action.r][action.c] = true;
+      } else {
+        this.vWalls[action.r][action.c] = true;
+      }
+    }
+
+    this.lastAction = { ...action, playerIdx: this.currentPlayerIdx };
+    this.moveLog.push(this.lastAction);
   }
 
   /**
@@ -71,7 +101,9 @@ class GameState {
       currentPlayerIdx: this.currentPlayerIdx,
       hWalls: this.hWalls.map(row => [...row]),
       vWalls: this.vWalls.map(row => [...row]),
-      winner: this.winner
+      winner: this.winner,
+      lastAction: this.lastAction,
+      moveLog: this.moveLog.map(a => ({ ...a }))
     };
     this.history.push(JSON.stringify(snapshot));
     // Limit history size to 50 moves
@@ -95,7 +127,9 @@ class GameState {
     this.hWalls = lastState.hWalls;
     this.vWalls = lastState.vWalls;
     this.winner = lastState.winner;
-    
+    this.lastAction = lastState.lastAction || null;
+    this.moveLog = lastState.moveLog || [];
+
     return true;
   }
 }

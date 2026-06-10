@@ -102,7 +102,8 @@ function renderBoard(boardEl, state, validMoves, orientation) {
     pawn1El.classList.remove('active-turn');
   }
 
-  // 2. Highlight Valid Moves
+  // 2. Highlight Valid Moves + last move
+  const last = state.lastAction;
   const cellElements = boardEl.querySelectorAll('.cell');
   cellElements.forEach(cell => {
     const r = parseInt(cell.dataset.row);
@@ -117,6 +118,11 @@ function renderBoard(boardEl, state, validMoves, orientation) {
       cell.classList.remove('valid-move');
       cell.style.removeProperty('--highlight-color');
     }
+
+    // Mark the destination of the most recent pawn move
+    const isLastMove =
+      last && last.type === 'move' && last.r === r && last.c === c;
+    cell.classList.toggle('last-move', !!isLastMove);
   });
 
   // 3. Render Placed Walls
@@ -124,16 +130,20 @@ function renderBoard(boardEl, state, validMoves, orientation) {
   const oldWalls = boardEl.querySelectorAll('.wall');
   oldWalls.forEach(w => w.remove());
 
+  // A wall only animates in if it's the one just placed this turn
+  const isJustPlaced = (orient, r, c) =>
+    last && last.type === 'wall' && last.orientation === orient &&
+    last.r === r && last.c === c;
+
   // Render Horizontal Walls
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       if (state.hWalls[r][c]) {
         const wall = document.createElement('div');
         wall.className = 'wall wall-h';
+        if (isJustPlaced('h', r, c)) wall.classList.add('just-placed');
         wall.style.gridRow = `${2 * r + 2}`;
         wall.style.gridColumn = `${2 * c + 1} / span 3`;
-        // Color based on which player placed it? (Stored in history or default color)
-        // For neutrality, we can color placed walls a crisp steel blue/gray or active player accent
         boardEl.appendChild(wall);
       }
     }
@@ -145,6 +155,7 @@ function renderBoard(boardEl, state, validMoves, orientation) {
       if (state.vWalls[r][c]) {
         const wall = document.createElement('div');
         wall.className = 'wall wall-v';
+        if (isJustPlaced('v', r, c)) wall.classList.add('just-placed');
         wall.style.gridRow = `${2 * r + 1} / span 3`;
         wall.style.gridColumn = `${2 * c + 2}`;
         boardEl.appendChild(wall);

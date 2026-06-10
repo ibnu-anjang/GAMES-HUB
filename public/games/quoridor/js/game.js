@@ -32,7 +32,9 @@ const TRANSLATIONS = {
     winP2: "Player 2 memenangkan pertandingan! Selamat!",
     winAI: "AI memenangkan game! Coba lagi lain kali.",
     p1Name: "♟️ Player 1 (Bawah)",
-    p2Name: "🧙‍♂️ Player 2 (Atas)"
+    p2Name: "🧙‍♂️ Player 2 (Atas)",
+    moveHistory: "Riwayat Langkah",
+    noMoves: "Belum ada langkah."
   },
   en: {
     title: "QUORIDOR",
@@ -65,7 +67,9 @@ const TRANSLATIONS = {
     winP2: "Player 2 wins the match! Congratulations!",
     winAI: "The AI won the game! Better luck next time.",
     p1Name: "♟️ Player 1 (Bottom)",
-    p2Name: "🧙‍♂️ Player 2 (Top)"
+    p2Name: "🧙‍♂️ Player 2 (Top)",
+    moveHistory: "Move History",
+    noMoves: "No moves yet."
   }
 };
 
@@ -113,6 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
   restartBtn.addEventListener('click', restartGame);
   undoBtn.addEventListener('click', handleUndo);
   toggleOrientationBtn.addEventListener('click', toggleOrientation);
+
+  // Sound toggle
+  const soundBtn = document.getElementById('sound-btn');
+  if (soundBtn && window.QuoridorSound) {
+    const syncSoundLabel = () => {
+      const muted = window.QuoridorSound.isMuted();
+      soundBtn.innerText = muted ? '🔇 Sound Off' : '🔊 Sound On';
+      soundBtn.classList.toggle('muted', muted);
+    };
+    syncSoundLabel();
+    soundBtn.addEventListener('click', () => {
+      window.QuoridorSound.toggleMute();
+      syncSoundLabel();
+    });
+  }
   playAgainBtn.addEventListener('click', () => {
     hideWinModal();
     restartGame();
@@ -280,9 +299,10 @@ function handleCellClick(r, c) {
     // Save to undo history before making the move
     state.saveToHistory();
 
+    state.applyAction({ type: 'move', r, c });
+    playSound('move');
+
     const player = state.players[state.currentPlayerIdx];
-    player.r = r;
-    player.c = c;
 
     // Check if player won
     if (player.r === player.targetRow) {
@@ -323,14 +343,8 @@ function handleIntersectionClick(r, c) {
     // Save state before placement
     state.saveToHistory();
 
-    const player = state.players[state.currentPlayerIdx];
-    player.walls--;
-
-    if (activeOrientation === 'h') {
-      state.hWalls[r][c] = true;
-    } else {
-      state.vWalls[r][c] = true;
-    }
+    state.applyAction({ type: 'wall', r, c, orientation: activeOrientation });
+    playSound('wall');
 
     clearWallPreview(boardEl);
     currentHoverIntersect = null;
@@ -338,6 +352,7 @@ function handleIntersectionClick(r, c) {
     advanceTurn();
   } else {
     // Play a micro-animation or shake effect if placement is blocked
+    playSound('invalid');
     boardEl.classList.add('shake');
     setTimeout(() => boardEl.classList.remove('shake'), 400);
   }
@@ -348,9 +363,10 @@ function handleIntersectionClick(r, c) {
  */
 function advanceTurn() {
   state.currentPlayerIdx = 1 - state.currentPlayerIdx;
-  
+
   const validMoves = getValidMoves(state.currentPlayerIdx, state);
   renderBoard(boardEl, state, validMoves, activeOrientation);
+  renderMoveLog();
 
   // Run AI turn if gameMode is AI and current player is AI (Player 2)
   if (state.gameMode === 'ai' && state.currentPlayerIdx === 1 && !state.winner) {
@@ -371,28 +387,16 @@ function runAITurn() {
     if (!isInteractionBlocked || state.winner) return;
 
     const action = getAIMove(state);
-    
+
     // Save to history before executing
     state.saveToHistory();
 
-    if (action.type === 'move') {
-      const aiPlayer = state.players[1];
-      aiPlayer.r = action.r;
-      aiPlayer.c = action.c;
+    state.applyAction(action);
+    playSound(action.type === 'wall' ? 'wall' : 'move');
 
-      if (aiPlayer.r === aiPlayer.targetRow) {
-        handleGameOver(1);
-        return;
-      }
-    } else if (action.type === 'wall') {
-      const aiPlayer = state.players[1];
-      aiPlayer.walls--;
-
-      if (action.orientation === 'h') {
-        state.hWalls[action.r][action.c] = true;
-      } else {
-        state.vWalls[action.r][action.c] = true;
-      }
+    if (action.type === 'move' && state.players[1].r === state.players[1].targetRow) {
+      handleGameOver(1);
+      return;
     }
 
     isInteractionBlocked = false;
@@ -418,6 +422,7 @@ function handleUndo() {
       clearWallPreview(boardEl);
       const validMoves = getValidMoves(state.currentPlayerIdx, state);
       renderBoard(boardEl, state, validMoves, activeOrientation);
+      renderMoveLog();
     }
   } else {
     // PVP mode: Undo once
@@ -426,6 +431,7 @@ function handleUndo() {
       clearWallPreview(boardEl);
       const validMoves = getValidMoves(state.currentPlayerIdx, state);
       renderBoard(boardEl, state, validMoves, activeOrientation);
+      renderMoveLog();
     }
   }
 }
@@ -440,6 +446,8 @@ function handleGameOver(winnerIdx) {
   isInteractionBlocked = true;
   clearWallPreview(boardEl);
   renderBoard(boardEl, state, [], activeOrientation);
+  renderMoveLog();
+  playSound('win');
 
   // Show win modal
   setTimeout(() => {
@@ -468,6 +476,60 @@ function hideWinModal() {
     winModal.classList.add('hidden');
     winModal.classList.remove('flex');
   }
+}
+
+/**
+ * Plays a sound effect by name, if the sound module is loaded and unmuted.
+ */
+function playSound(name) {
+  if (window.QuoridorSound) {
+    window.QuoridorSound.play(name);
+  }
+}
+
+/**
+ * Converts an action into compact Quoridor-style notation.
+ * Columns are letters a–i (left→right); rows are numbers 1–9 (bottom→top).
+ * Move: "e2". Wall: "c6h" / "c6v".
+ */
+function actionToNotation(action) {
+  if (action.type === 'move') {
+    const col = String.fromCharCode(97 + action.c);
+    const row = 9 - action.r;
+    return `${col}${row}`;
+  }
+  // Walls sit on the 8x8 intersection grid; label by their top-left corner.
+  const col = String.fromCharCode(97 + action.c);
+  const row = 8 - action.r;
+  return `${col}${row}${action.orientation}`;
+}
+
+/**
+ * Renders the move history panel from state.moveLog.
+ */
+function renderMoveLog() {
+  const list = document.getElementById('move-log');
+  if (!list) return;
+
+  if (state.moveLog.length === 0) {
+    const t = TRANSLATIONS[state.language];
+    list.innerHTML = `<li class="move-log-empty">${t.noMoves}</li>`;
+    return;
+  }
+
+  list.innerHTML = state.moveLog
+    .map((action, i) => {
+      const p = state.players[action.playerIdx];
+      const icon = action.type === 'wall' ? '🧱' : '▸';
+      return `<li class="move-log-item">
+        <span class="move-num">${i + 1}</span>
+        <span class="move-dot" style="background:${p.color}"></span>
+        <span class="move-text">${icon} ${actionToNotation(action)}</span>
+      </li>`;
+    })
+    .join('');
+
+  list.scrollTop = list.scrollHeight;
 }
 
 /**
@@ -528,7 +590,14 @@ function applyLanguage() {
   state.players[0].name = lang === 'id' ? "Player 1" : "Player 1";
   state.players[1].name = lang === 'id' ? "Player 2" : "Player 2";
   
+  // Move history panel title
+  const moveLogTitle = document.getElementById('move-log-title');
+  if (moveLogTitle) {
+    moveLogTitle.innerHTML = `🕒 ${t.moveHistory}`;
+  }
+
   // Trigger board rendering
   const validMoves = getValidMoves(state.currentPlayerIdx, state);
   renderBoard(boardEl, state, validMoves, activeOrientation);
+  renderMoveLog();
 }

@@ -444,6 +444,78 @@ button.primary:hover:not(:disabled) {
   100% { opacity: 1; }
 }
 
+/* Last-move marker: a soft amber ring on the destination cell */
+.cell.last-move::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.65);
+  pointer-events: none;
+}
+
+/* Move History Panel */
+.move-log {
+  list-style: none;
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.move-log-empty {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 300;
+  padding: 0.25rem 0;
+}
+
+.move-log-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+}
+
+.move-log-item:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.move-num {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4rem;
+  font-size: 0.72rem;
+}
+
+.move-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.move-text {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Sound Toggle Button */
+.sound-toggle {
+  margin-top: 0.6rem;
+  width: 100%;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.sound-toggle.muted {
+  opacity: 0.55;
+}
+
 /* Pawns */
 .pawn {
   position: absolute;
@@ -507,8 +579,12 @@ button.primary:hover:not(:disabled) {
   box-shadow: 0 0 8px var(--wall-glow), inset 0 1px 1px rgba(255, 255, 255, 0.2);
   z-index: 3;
   border-radius: 3px;
-  animation: wall-spawn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none; /* Let clicks bypass permanent walls */
+}
+
+/* Only the wall just placed this turn animates in (others are re-rendered silently) */
+.wall.just-placed {
+  animation: wall-spawn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes wall-spawn {

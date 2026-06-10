@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { games, getGame } from "@/lib/games";
+import GamePlayer from "@/components/GamePlayer";
 
 export function generateStaticParams() {
   return games.map((g) => ({ slug: g.slug }));
@@ -36,14 +37,7 @@ export default async function GamePage({
         ← Kembali ke semua game
       </Link>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-panel">
-        <iframe
-          src={game.embed}
-          title={game.title}
-          className="h-[78vh] w-full"
-          allow="fullscreen; gamepad; autoplay"
-        />
-      </div>
+      <GamePlayer src={game.embed} title={game.title} />
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>

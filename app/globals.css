@@ -25,3 +25,13 @@ body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* When the game player enters fullscreen, let the iframe fill the screen */
+.game-player:fullscreen {
+  border-radius: 0;
+  border: 0;
+}
+.game-player:fullscreen iframe {
+  height: 100vh;
+  min-height: 0;
+}

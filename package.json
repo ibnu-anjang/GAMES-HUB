@@ -2,6 +2,23 @@
   "name": "games-hub",
   "version": "1.0.0",
   "private": true,
+  "description": "Portal game ala CrazyGames — kumpulan game buatan sendiri, langsung main di browser. Next.js 16 + Tailwind v4.",
+  "author": "ibnu-anjang",
+  "license": "MIT",
+  "homepage": "https://github.com/ibnu-anjang/GAMES-HUB#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ibnu-anjang/GAMES-HUB.git"
+  },
+  "keywords": [
+    "games",
+    "game-portal",
+    "nextjs",
+    "tailwindcss",
+    "typescript",
+    "quoridor",
+    "browser-games"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
